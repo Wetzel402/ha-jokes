@@ -95,6 +95,7 @@ The sensor provides the following attributes:
 - `joke`: The complete joke text
 - `joke_id`: Unique identifier for the joke
 - `source`: The joke provider that supplied the joke
+- `category`: The joke's category or type from the provider (empty when the provider does not supply one)
 - `last_updated`: Timestamp of the last successful update
 - `refresh_interval`: Current refresh interval in minutes
 

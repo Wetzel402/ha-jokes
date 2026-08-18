@@ -12,7 +12,7 @@
  * Version is kept in lockstep with the integration's manifest.json.
  */
 
-const CARD_VERSION = "1.7.0";
+const CARD_VERSION = "1.7.1";
 
 console.info(
   `%c HA-JOKES-CARD %c v${CARD_VERSION} `,
@@ -247,8 +247,9 @@ class HaJokesCard extends HTMLElement {
 
     // Source + updated meta.
     const source = st && st.attributes ? st.attributes.source : "";
+    const category = st && st.attributes ? st.attributes.category : "";
     if (cfg.show_source && source) {
-      els.src.textContent = `🎲 ${source}`;
+      els.src.textContent = category ? `🎲 ${source} · ${category}` : `🎲 ${source}`;
       els.src.classList.remove("hidden");
     } else {
       els.src.classList.add("hidden");

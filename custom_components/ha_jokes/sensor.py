@@ -32,6 +32,7 @@ from .const import (
     API_URL_JOKEAPI_BASE,
     API_URL_OFFICIAL_BASE,
     API_URL_YOMAMA,
+    ATTR_CATEGORY,
     ATTR_EXPLANATION,
     ATTR_JOKE,
     ATTR_JOKE_ID,
@@ -171,6 +172,7 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             ATTR_JOKE: data.get("joke", ""),
             ATTR_JOKE_ID: data.get("id", ""),
             ATTR_SOURCE: "icanhazdadjoke.com",
+            ATTR_CATEGORY: "",
         }
 
     def _parse_jokeapi(self, data: dict) -> dict[str, Any]:
@@ -182,6 +184,7 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             ATTR_JOKE: joke_text,
             ATTR_JOKE_ID: joke_id,
             ATTR_SOURCE: "jokeapi.dev",
+            ATTR_CATEGORY: data.get("category", ""),
         }
 
     def _parse_official_joke_api(self, data: dict | list) -> dict[str, Any]:
@@ -197,6 +200,7 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             ATTR_JOKE: joke_text,
             ATTR_JOKE_ID: joke_id,
             ATTR_SOURCE: "official-joke-api.appspot.com",
+            ATTR_CATEGORY: data.get("type", ""),
         }
 
     def _parse_geekjokes(self, data: dict) -> dict[str, Any]:
@@ -206,6 +210,7 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             ATTR_JOKE: data.get("joke", ""),
             ATTR_JOKE_ID: "",
             ATTR_SOURCE: "geek-jokes.sameerkumar.website",
+            ATTR_CATEGORY: "",
         }
 
     def _parse_yomama(self, data: dict) -> dict[str, Any]:
@@ -215,6 +220,7 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             ATTR_JOKE: data.get("joke", ""),
             ATTR_JOKE_ID: "",
             ATTR_SOURCE: "yomama-jokes.com",
+            ATTR_CATEGORY: data.get("category", ""),
         }
 
     async def _fetch_from_provider(
@@ -303,6 +309,7 @@ class JokesSensor(CoordinatorEntity, SensorEntity):
             ATTR_JOKE: self.coordinator.data.get(ATTR_JOKE, ""),
             ATTR_JOKE_ID: self.coordinator.data.get(ATTR_JOKE_ID, ""),
             ATTR_SOURCE: self.coordinator.data.get(ATTR_SOURCE, ""),
+            ATTR_CATEGORY: self.coordinator.data.get(ATTR_CATEGORY, ""),
             ATTR_LAST_UPDATED: self.coordinator.data.get(ATTR_LAST_UPDATED, ""),
             ATTR_REFRESH_INTERVAL: self.coordinator.data.get(ATTR_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
         }

@@ -2,7 +2,7 @@
 
 DOMAIN = "ha_jokes"
 NAME = "Jokes"
-VERSION = "1.7.0"
+VERSION = "1.7.1"
 
 API_URL_ICANHAZDADJOKE = "https://icanhazdadjoke.com"
 API_HEADERS_ICANHAZDADJOKE = {
@@ -56,6 +56,7 @@ ATTR_JOKE_ID = "joke_id"
 ATTR_LAST_UPDATED = "last_updated"
 ATTR_REFRESH_INTERVAL = "refresh_interval"
 ATTR_SOURCE = "source"
+ATTR_CATEGORY = "category"
 ATTR_EXPLANATION = "explanation"
 
 PROVIDER_ICANHAZDADJOKE = "icanhazdadjoke"
