@@ -5,17 +5,46 @@
         "title": "Jokes Setup",
         "description": "Configure your Jokes integration",
         "data": {
-          "refresh_interval": "Refresh interval (minutes)",
+          "refresh_interval": "Refresh interval",
           "providers": "Joke providers"
         },
         "data_description": {
           "providers": "Select which joke sources to use. Note: \"Geek Jokes\" (mostly Chuck Norris / crude) and \"Yo Mama Jokes\" (roast humour) serve unfiltered adult content and are not family-friendly — both are off by default."
         }
+      },
+      "jokeapi": {
+        "title": "JokeAPI filters",
+        "description": "Choose JokeAPI categories, content flags to exclude, and Safe Mode",
+        "data": {
+          "jokeapi_categories": "Categories",
+          "jokeapi_blacklist": "Blacklist flags",
+          "jokeapi_safe_mode": "Safe Mode"
+        },
+        "data_description": {
+          "jokeapi_categories": "At least one category is required. If every category is selected, JokeAPI will use Any.",
+          "jokeapi_blacklist": "Jokes matching these flags will not be served. Leave empty to allow flagged jokes.",
+          "jokeapi_safe_mode": "When enabled, JokeAPI excludes flagged jokes and the Dark category. This is on by default to keep results family-friendly."
+        }
+      },
+      "official": {
+        "title": "Official Joke API categories",
+        "description": "Choose which Official Joke API types to draw from",
+        "data": {
+          "official_categories": "Categories"
+        },
+        "data_description": {
+          "official_categories": "At least one category is required. A type is chosen at random from your selection each time a joke is fetched."
+        }
       }
     },
     "error": {
       "invalid_refresh_interval": "Refresh interval must be between 1 and 1440 minutes",
-      "no_providers_selected": "At least one joke provider must be selected"
+      "no_providers_selected": "At least one joke provider must be selected",
+      "no_jokeapi_categories": "Select at least one JokeAPI category",
+      "no_official_categories": "Select at least one Official Joke API category"
+    },
+    "abort": {
+      "already_configured": "Jokes is already configured"
     }
   },
   "options": {
@@ -24,17 +53,82 @@
         "title": "Jokes Options",
         "description": "Configure Jokes options",
         "data": {
-          "refresh_interval": "Refresh interval (minutes)",
+          "refresh_interval": "Refresh interval",
           "providers": "Joke providers"
         },
         "data_description": {
           "providers": "Select which joke sources to use. Note: \"Geek Jokes\" (mostly Chuck Norris / crude) and \"Yo Mama Jokes\" (roast humour) serve unfiltered adult content and are not family-friendly — both are off by default."
         }
+      },
+      "jokeapi": {
+        "title": "JokeAPI filters",
+        "description": "Choose JokeAPI categories, content flags to exclude, and Safe Mode",
+        "data": {
+          "jokeapi_categories": "Categories",
+          "jokeapi_blacklist": "Blacklist flags",
+          "jokeapi_safe_mode": "Safe Mode"
+        },
+        "data_description": {
+          "jokeapi_categories": "At least one category is required. If every category is selected, JokeAPI will use Any.",
+          "jokeapi_blacklist": "Jokes matching these flags will not be served. Leave empty to allow flagged jokes.",
+          "jokeapi_safe_mode": "When enabled, JokeAPI excludes flagged jokes and the Dark category. This is on by default to keep results family-friendly."
+        }
+      },
+      "official": {
+        "title": "Official Joke API categories",
+        "description": "Choose which Official Joke API types to draw from",
+        "data": {
+          "official_categories": "Categories"
+        },
+        "data_description": {
+          "official_categories": "At least one category is required. A type is chosen at random from your selection each time a joke is fetched."
+        }
       }
     },
     "error": {
       "invalid_refresh_interval": "Refresh interval must be between 1 and 1440 minutes",
-      "no_providers_selected": "At least one joke provider must be selected"
+      "no_providers_selected": "At least one joke provider must be selected",
+      "no_jokeapi_categories": "Select at least one JokeAPI category",
+      "no_official_categories": "Select at least one Official Joke API category"
+    }
+  },
+  "selector": {
+    "providers": {
+      "options": {
+        "icanhazdadjoke": "icanhazdadjoke.com",
+        "jokeapi": "JokeAPI (jokeapi.dev)",
+        "official_joke_api": "Official Joke API",
+        "geek_jokes": "Geek Jokes (not family-friendly)",
+        "yomama_jokes": "Yo Mama Jokes (not family-friendly)"
+      }
+    },
+    "jokeapi_categories": {
+      "options": {
+        "Programming": "Programming",
+        "Misc": "Misc",
+        "Dark": "Dark",
+        "Pun": "Pun",
+        "Spooky": "Spooky",
+        "Christmas": "Christmas"
+      }
+    },
+    "jokeapi_blacklist": {
+      "options": {
+        "nsfw": "NSFW",
+        "religious": "Religious",
+        "political": "Political",
+        "racist": "Racist",
+        "sexist": "Sexist",
+        "explicit": "Explicit"
+      }
+    },
+    "official_categories": {
+      "options": {
+        "general": "General",
+        "knock-knock": "Knock-knock",
+        "programming": "Programming",
+        "dad": "Dad"
+      }
     }
   }
 }

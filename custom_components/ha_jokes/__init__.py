@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -11,11 +10,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
-    DOMAIN,
-    CONF_REFRESH_INTERVAL,
+    CONF_JOKEAPI_BLACKLIST,
+    CONF_JOKEAPI_CATEGORIES,
+    CONF_JOKEAPI_SAFE_MODE,
+    CONF_OFFICIAL_CATEGORIES,
     CONF_PROVIDERS,
-    DEFAULT_REFRESH_INTERVAL,
+    CONF_REFRESH_INTERVAL,
+    DEFAULT_JOKEAPI_BLACKLIST,
+    DEFAULT_JOKEAPI_CATEGORIES,
+    DEFAULT_JOKEAPI_SAFE_MODE,
+    DEFAULT_OFFICIAL_CATEGORIES,
     DEFAULT_PROVIDERS,
+    DEFAULT_REFRESH_INTERVAL,
+    DOMAIN,
     VERSION,
 )
 from .sensor import JokesDataUpdateCoordinator
@@ -79,9 +86,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     enabled_providers = entry.options.get(
         CONF_PROVIDERS, DEFAULT_PROVIDERS
     )
-    
-    # Create coordinator
-    coordinator = JokesDataUpdateCoordinator(hass, refresh_interval, enabled_providers)
+
+    coordinator = JokesDataUpdateCoordinator(
+        hass,
+        refresh_interval,
+        enabled_providers,
+        entry.options.get(CONF_JOKEAPI_CATEGORIES, DEFAULT_JOKEAPI_CATEGORIES),
+        entry.options.get(CONF_JOKEAPI_BLACKLIST, DEFAULT_JOKEAPI_BLACKLIST),
+        entry.options.get(CONF_JOKEAPI_SAFE_MODE, DEFAULT_JOKEAPI_SAFE_MODE),
+        entry.options.get(CONF_OFFICIAL_CATEGORIES, DEFAULT_OFFICIAL_CATEGORIES),
+    )
     
     # Fetch initial data - this can raise ConfigEntryNotReady
     try:
@@ -120,10 +134,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Only register the service if it hasn't been registered yet
     if not hass.services.has_service(DOMAIN, "explain_joke"):
         hass.services.async_register(DOMAIN, "explain_joke", handle_explain_joke)
-    
-    # Set up options update listener
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-    
+
     return True
 
 
@@ -144,7 +155,22 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if entry.version > 2:
+        return False
+
+    if entry.version < 2:
+        options = dict(entry.options)
+        options.setdefault(CONF_JOKEAPI_CATEGORIES, DEFAULT_JOKEAPI_CATEGORIES)
+        options.setdefault(CONF_JOKEAPI_BLACKLIST, DEFAULT_JOKEAPI_BLACKLIST)
+        options.setdefault(CONF_JOKEAPI_SAFE_MODE, DEFAULT_JOKEAPI_SAFE_MODE)
+        options.setdefault(CONF_OFFICIAL_CATEGORIES, DEFAULT_OFFICIAL_CATEGORIES)
+        hass.config_entries.async_update_entry(
+            entry,
+            options=options,
+            unique_id=entry.unique_id or DOMAIN,
+            version=2,
+        )
+        _LOGGER.debug("Migrated Jokes config entry to version 2")
+
+    return True

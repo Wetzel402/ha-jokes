@@ -15,7 +15,7 @@ This integration fetches random jokes from up to five different joke APIs and ma
 - 📊 **Sensor Entity**: Clean integration with Home Assistant's sensor platform
 - 🏷️ **Rich Attributes**: Joke text, unique ID, source, and metadata stored as attributes
 - ⏰ **Configurable Updates**: Set refresh interval from 1 minute to 24 hours
-- ⚙️ **Easy Setup**: Simple configuration through the Home Assistant UI
+- ⚙️ **Easy Setup**: Simple configuration through the Home Assistant UI, including JokeAPI filters and Official Joke API categories
 - 🔄 **Options Flow**: Change settings without removing and re-adding the integration
 - 🛡️ **Robust**: Handles network errors and API issues gracefully
 - 📱 **HACS Ready**: Full HACS compliance for easy installation and updates
@@ -34,7 +34,7 @@ This integration fetches random jokes from up to five different joke APIs and ma
 - **Attributes**: `joke`, `joke_id`, `source`, `last_updated`, `refresh_interval`
 - **Icon**: 🙂 (mdi:emoticon-happy-outline)
 - **Updates**: Configurable interval from 1-1440 minutes
-- **APIs**: Uses icanhazdadjoke.com, JokeAPI v2 (safe mode), and Official Joke API by default; Geek Jokes and Yo Mama can be enabled in the options flow (no API keys required)
+- **APIs**: Uses icanhazdadjoke.com, JokeAPI v2 (Safe Mode and blacklist flags on by default), and Official Joke API by default; JokeAPI categories/filters and Official Joke types are configurable in setup. Geek Jokes and Yo Mama can be enabled in the options flow (no API keys required)
 - **Card**: `custom:ha-jokes-card` — shows the joke, its source, how long ago it updated, and **Explain it** / **New joke** buttons
 
 Ready to add some humor to your smart home? Install now and let the laughs begin! 😄

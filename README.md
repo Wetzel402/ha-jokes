@@ -24,7 +24,7 @@ A custom Home Assistant integration that fetches random jokes from multiple sour
 - 🏷️ Stores joke text, ID, and source as attributes (no 255 character state limitation)
 - ⏰ Configurable refresh interval (1-1440 minutes, default: 5 minutes)
 - 🤖 AI-powered joke explanations using Home Assistant's AI integration
-- ⚙️ Easy configuration through Home Assistant UI
+- ⚙️ Easy configuration through Home Assistant UI, including JokeAPI filters and Official Joke API categories
 - 🔄 Supports options flow for changing settings
 - 🛡️ Robust error handling and logging
 - 📱 HACS compliant for easy installation
@@ -60,20 +60,22 @@ Or open it directly from here:
 1. Go to **Settings** → **Devices & Services**
 2. Click **"+ Add Integration"**
 3. Search for **"Jokes"**
-4. Set your desired refresh interval (1-1440 minutes, default: 5)
-5. Click **"Submit"**
+4. Set your desired refresh interval (1-1440 minutes, default: 5) and choose joke providers
+5. If **JokeAPI** is selected, choose categories, blacklist flags, and whether Safe Mode is on (on by default)
+6. If **Official Joke API** is selected, choose which joke types to use (general, knock-knock, programming, dad)
+7. Click **"Submit"**
 
 ### Changing Options
 
 1. Go to **Settings** → **Devices & Services**
 2. Find the **Jokes** integration
 3. Click **"Configure"**
-4. Adjust the refresh interval as needed
-5. Select/de-select joke providers
+4. Adjust the refresh interval and providers as needed
+5. If JokeAPI or Official Joke API is enabled, the next steps let you change their filters and categories
 6. Click **"Submit"**
 
 The setup and options screens list every joke source. The two opt-in sources are labelled
-**⚠️ not family-friendly** and are unchecked by default:
+**not family-friendly** and are unchecked by default. JokeAPI Safe Mode and all blacklist flags are on by default.
 
 <img alt="Jokes setup dialog — choosing joke providers, with Geek Jokes and Yo Mama marked not family-friendly and off by default" src="images/config-flow.png" width="640" />
 
@@ -367,12 +369,15 @@ This integration fetches jokes from several different sources, automatically sel
    - No API key required
 
 2. **[JokeAPI v2](https://v2.jokeapi.dev/)** - A RESTful API serving jokes
-   - Configured in safe mode (no explicit content)
+   - Configurable categories (Programming, Misc, Dark, Pun, Spooky, Christmas)
+   - Configurable blacklist flags (nsfw, religious, political, racist, sexist, explicit)
+   - Safe Mode on by default (excludes flagged jokes and the Dark category)
    - Returns single-line jokes only
    - Free and open source
    - No API key required
 
 3. **[Official Joke API](https://github.com/15Dkatz/official_joke_api)** - A simple joke API
+   - Configurable types: general, knock-knock, programming, dad
    - Community-maintained joke collection
    - Returns setup/punchline format jokes
    - Free and open source

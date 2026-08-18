@@ -13,6 +13,7 @@ import async_timeout
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -28,8 +29,8 @@ from .const import (
     API_HEADERS_YOMAMA,
     API_URL_GEEKJOKES,
     API_URL_ICANHAZDADJOKE,
-    API_URL_JOKEAPI,
-    API_URL_OFFICIAL,
+    API_URL_JOKEAPI_BASE,
+    API_URL_OFFICIAL_BASE,
     API_URL_YOMAMA,
     ATTR_EXPLANATION,
     ATTR_JOKE,
@@ -37,11 +38,16 @@ from .const import (
     ATTR_LAST_UPDATED,
     ATTR_REFRESH_INTERVAL,
     ATTR_SOURCE,
-    CONF_PROVIDERS,
-    CONF_REFRESH_INTERVAL,
+    DEFAULT_JOKEAPI_BLACKLIST,
+    DEFAULT_JOKEAPI_CATEGORIES,
+    DEFAULT_JOKEAPI_SAFE_MODE,
+    DEFAULT_OFFICIAL_CATEGORIES,
     DEFAULT_PROVIDERS,
     DEFAULT_REFRESH_INTERVAL,
     DOMAIN,
+    JOKEAPI_BLACKLIST_FLAGS,
+    JOKEAPI_CATEGORIES,
+    OFFICIAL_CATEGORIES,
     PROVIDER_GEEKJOKES,
     PROVIDER_ICANHAZDADJOKE,
     PROVIDER_JOKEAPI,
@@ -75,8 +81,27 @@ async def async_setup_entry(
 class JokesDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
+    def _jokeapi_url(self) -> str:
+        selected = [c for c in JOKEAPI_CATEGORIES if c in self._jokeapi_categories]
+        path = "Any"
+        if selected and selected != list(JOKEAPI_CATEGORIES):
+            path = ",".join(selected)
+        query = ["type=single"]
+        if self._jokeapi_safe_mode:
+            query.append("safe-mode")
+        flags = [f for f in JOKEAPI_BLACKLIST_FLAGS if f in self._jokeapi_blacklist]
+        if flags:
+            query.append(f"blacklistFlags={','.join(flags)}")
+        return f"{API_URL_JOKEAPI_BASE}/{path}?{'&'.join(query)}"
+
+    def _official_url(self) -> str:
+        selected = [c for c in OFFICIAL_CATEGORIES if c in self._official_categories]
+        if not selected:
+            selected = list(OFFICIAL_CATEGORIES)
+        joke_type = random.choice(selected)
+        return f"{API_URL_OFFICIAL_BASE}/jokes/{joke_type}/random"
+
     def _build_provider_configs(self) -> list[dict[str, Any]]:
-        """Build provider configurations."""
         return [
             {
                 "name": PROVIDER_ICANHAZDADJOKE,
@@ -86,13 +111,13 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             },
             {
                 "name": PROVIDER_JOKEAPI,
-                "url": API_URL_JOKEAPI,
+                "url": self._jokeapi_url,
                 "headers": API_HEADERS_JOKEAPI,
                 "parser": self._parse_jokeapi,
             },
             {
                 "name": PROVIDER_OFFICIAL,
-                "url": API_URL_OFFICIAL,
+                "url": self._official_url,
                 "headers": API_HEADERS_OFFICIAL,
                 "parser": self._parse_official_joke_api,
             },
@@ -110,15 +135,29 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             },
         ]
 
-    def __init__(self, hass: HomeAssistant, refresh_interval: int, enabled_providers: list[str]) -> None:
-        """Initialize."""
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        refresh_interval: int,
+        enabled_providers: list[str],
+        jokeapi_categories: list[str] | None = None,
+        jokeapi_blacklist: list[str] | None = None,
+        jokeapi_safe_mode: bool = DEFAULT_JOKEAPI_SAFE_MODE,
+        official_categories: list[str] | None = None,
+    ) -> None:
         self.platforms = []
         self._refresh_interval = refresh_interval
         self._enabled_providers = enabled_providers if enabled_providers else DEFAULT_PROVIDERS
-        
-        # Filter to only enabled providers
-        self._providers = [p for p in self._build_provider_configs() if p["name"] in self._enabled_providers]
-        
+        self._jokeapi_categories = jokeapi_categories or DEFAULT_JOKEAPI_CATEGORIES
+        self._jokeapi_blacklist = (
+            jokeapi_blacklist if jokeapi_blacklist is not None else DEFAULT_JOKEAPI_BLACKLIST
+        )
+        self._jokeapi_safe_mode = jokeapi_safe_mode
+        self._official_categories = official_categories or DEFAULT_OFFICIAL_CATEGORIES
+        self._providers = [
+            p for p in self._build_provider_configs() if p["name"] in self._enabled_providers
+        ]
+
         super().__init__(
             hass,
             _LOGGER,
@@ -135,26 +174,25 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
         }
 
     def _parse_jokeapi(self, data: dict) -> dict[str, Any]:
-        """Parse JokeAPI v2 response."""
-        # JokeAPI returns different formats for single and two-part jokes
-        # We're using type=single, so we get the 'joke' field
+        if data.get("error"):
+            raise ValueError(data.get("message", "JokeAPI returned an error"))
         joke_text = data.get("joke", "")
         joke_id = str(data.get("id", ""))
-        
         return {
             ATTR_JOKE: joke_text,
             ATTR_JOKE_ID: joke_id,
             ATTR_SOURCE: "jokeapi.dev",
         }
 
-    def _parse_official_joke_api(self, data: dict) -> dict[str, Any]:
-        """Parse Official Joke API response."""
-        # Official Joke API returns setup and punchline separately
+    def _parse_official_joke_api(self, data: dict | list) -> dict[str, Any]:
+        if isinstance(data, list):
+            if not data:
+                raise ValueError("Official Joke API returned no jokes")
+            data = data[0]
         setup = data.get("setup", "")
         punchline = data.get("punchline", "")
         joke_text = f"{setup} {punchline}" if setup and punchline else ""
         joke_id = str(data.get("id", ""))
-        
         return {
             ATTR_JOKE: joke_text,
             ATTR_JOKE_ID: joke_id,
@@ -182,25 +220,25 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
     async def _fetch_from_provider(
         self, session: aiohttp.ClientSession, provider: dict
     ) -> dict[str, Any] | None:
-        """Fetch joke from a specific provider."""
+        url = provider["url"]() if callable(provider["url"]) else provider["url"]
         try:
-            async with session.get(
-                provider["url"], headers=provider["headers"]
-            ) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    parsed = provider["parser"](data)
-                    _LOGGER.debug(
-                        "Successfully fetched joke from %s", provider["name"]
-                    )
-                    return parsed
-                else:
+            async with session.get(url, headers=provider["headers"]) as response:
+                if response.status != 200:
                     _LOGGER.warning(
                         "Provider %s returned status %s",
                         provider["name"],
                         response.status,
                     )
                     return None
+                data = await response.json()
+                parsed = provider["parser"](data)
+                if not parsed or not parsed.get(ATTR_JOKE):
+                    _LOGGER.warning(
+                        "Provider %s returned an empty joke", provider["name"]
+                    )
+                    return None
+                _LOGGER.debug("Successfully fetched joke from %s", provider["name"])
+                return parsed
         except Exception as err:
             _LOGGER.warning(
                 "Error fetching from provider %s: %s", provider["name"], err
@@ -208,28 +246,19 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             return None
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Update data via library with fault tolerance."""
-        # Randomize provider order for each request
         providers = self._providers.copy()
         random.shuffle(providers)
-        
         _LOGGER.debug("Attempting to fetch joke from providers in random order")
-        
+        session = async_get_clientsession(self.hass)
         try:
             async with async_timeout.timeout(30):
-                async with aiohttp.ClientSession() as session:
-                    # Try each provider until one succeeds
-                    for provider in providers:
-                        result = await self._fetch_from_provider(session, provider)
-                        if result:
-                            # Add common attributes
-                            result[ATTR_LAST_UPDATED] = datetime.now().isoformat()
-                            result[ATTR_REFRESH_INTERVAL] = self._refresh_interval
-                            return result
-                    
-                    # If all providers failed
-                    raise UpdateFailed("All joke providers failed to respond")
-                    
+                for provider in providers:
+                    result = await self._fetch_from_provider(session, provider)
+                    if result:
+                        result[ATTR_LAST_UPDATED] = datetime.now().isoformat()
+                        result[ATTR_REFRESH_INTERVAL] = self._refresh_interval
+                        return result
+                raise UpdateFailed("All joke providers failed to respond")
         except asyncio.TimeoutError as exception:
             raise UpdateFailed(
                 f"Timeout communicating with joke APIs: {exception}"
@@ -240,18 +269,6 @@ class JokesDataUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(
                 f"Error communicating with joke APIs: {exception}"
             ) from exception
-
-    def update_refresh_interval(self, refresh_interval: int) -> None:
-        """Update the refresh interval."""
-        self._refresh_interval = refresh_interval
-        self.update_interval = timedelta(minutes=refresh_interval)
-
-    def update_enabled_providers(self, enabled_providers: list[str]) -> None:
-        """Update the enabled providers."""
-        self._enabled_providers = enabled_providers if enabled_providers else DEFAULT_PROVIDERS
-        
-        # Rebuild providers list using centralized configuration
-        self._providers = [p for p in self._build_provider_configs() if p["name"] in self._enabled_providers]
 
 
 class JokesSensor(CoordinatorEntity, SensorEntity):
@@ -289,27 +306,6 @@ class JokesSensor(CoordinatorEntity, SensorEntity):
             ATTR_LAST_UPDATED: self.coordinator.data.get(ATTR_LAST_UPDATED, ""),
             ATTR_REFRESH_INTERVAL: self.coordinator.data.get(ATTR_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL),
         }
-
-    async def async_added_to_hass(self) -> None:
-        """When entity is added to hass."""
-        await super().async_added_to_hass()
-        
-        # Listen for options updates
-        self._config_entry.async_on_unload(
-            self._config_entry.add_update_listener(self._async_update_options)
-        )
-
-    async def _async_update_options(self, config_entry: ConfigEntry) -> None:
-        """Update options."""
-        refresh_interval = config_entry.options.get(
-            CONF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL
-        )
-        enabled_providers = config_entry.options.get(
-            CONF_PROVIDERS, DEFAULT_PROVIDERS
-        )
-        self.coordinator.update_refresh_interval(refresh_interval)
-        self.coordinator.update_enabled_providers(enabled_providers)
-        await self.coordinator.async_request_refresh()
 
 
 class JokeExplanationSensor(CoordinatorEntity, SensorEntity):
